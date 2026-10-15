@@ -5,5 +5,4 @@ pep8-naming==0.13.3
 pytils==0.4.1
 pytest==9.1.1
 pytest-django==4.12.0
-pytest-lazy-fixture==0.6.3
 pytest-subtests==0.9.0
