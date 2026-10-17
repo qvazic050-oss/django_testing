@@ -1,9 +1,12 @@
+
 """Фикстуры для тестов новостного приложения."""
 
 from datetime import timedelta
 
 import pytest
 from django.conf import settings
+from django.test import Client
+from django.urls import reverse
 from django.utils import timezone
 
 from news.models import Comment, News
@@ -19,8 +22,9 @@ def reader(django_user_model, db):
 
 
 @pytest.fixture
-def reader_client(reader, client, db):
+def reader_client(reader):
     """Создать клиент авторизованного читателя."""
+    client = Client()
     client.force_login(reader)
     return client
 
@@ -35,8 +39,9 @@ def author(django_user_model, db):
 
 
 @pytest.fixture
-def author_client(author, client, db):
+def author_client(author):
     """Создать клиент автора."""
+    client = Client()
     client.force_login(author)
     return client
 
@@ -60,7 +65,7 @@ def news_10(db):
         )
         for index in range(settings.NEWS_COUNT_ON_HOME_PAGE + 1)
     ]
-    return News.objects.bulk_create(all_news)
+    News.objects.bulk_create(all_news)
 
 
 @pytest.fixture
@@ -94,20 +99,76 @@ def comments(author, news, db):
 
 
 @pytest.fixture
-def id_news_for_args(news):
-    """Вернуть ID новости для аргументов URL."""
-    return (news.id,)
+def home_url():
+    """Вернуть URL главной страницы."""
+    return reverse('news:home')
 
 
 @pytest.fixture
-def id_comment_for_args(comment):
-    """Вернуть ID комментария для аргументов URL."""
-    return (comment.id,)
+def news_detail_url(news):
+    """Вернуть URL страницы новости."""
+    return reverse('news:detail', args=(news.pk,))
 
 
 @pytest.fixture
-def form_data():
-    """Подготовить данные формы комментария."""
+def login_url():
+    """Вернуть URL страницы входа."""
+    return reverse('users:login')
+
+
+@pytest.fixture
+def signup_url():
+    """Вернуть URL страницы регистрации."""
+    return reverse('users:signup')
+
+
+@pytest.fixture
+def logout_url():
+    """Вернуть URL выхода пользователя."""
+    return reverse('users:logout')
+
+
+@pytest.fixture
+def news_comments_url(news_detail_url):
+    """Вернуть URL страницы новости с якорем комментариев."""
+    return f'{news_detail_url}#comments'
+
+
+@pytest.fixture
+def comment_edit_url(comment):
+    """Вернуть URL редактирования комментария."""
+    return reverse('news:edit', args=(comment.pk,))
+
+
+@pytest.fixture
+def comment_delete_url(comment):
+    """Вернуть URL удаления комментария."""
+    return reverse('news:delete', args=(comment.pk,))
+
+
+@pytest.fixture
+def comment_action_urls(comment_edit_url, comment_delete_url):
+    """Вернуть URL редактирования и удаления комментария."""
     return {
-        'text': 'Новый текст',
+        'edit': comment_edit_url,
+        'delete': comment_delete_url,
+    }
+
+
+@pytest.fixture
+def public_page_urls(home_url, login_url, signup_url):
+    """Вернуть URL общедоступных страниц."""
+    return {
+        'главная': home_url,
+        'вход': login_url,
+        'регистрация': signup_url,
+    }
+
+
+@pytest.fixture
+def comment_page_urls(comment_edit_url, comment_delete_url):
+    """Вернуть URL страниц редактирования и удаления комментария."""
+    return {
+        'удаление': comment_delete_url,
+        'редактирование': comment_edit_url,
     }
