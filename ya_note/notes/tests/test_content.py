@@ -1,35 +1,29 @@
 
-from django.contrib.auth import get_user_model
-from django.test import TestCase
-from django.urls import reverse_lazy
+"""Тесты содержимого страниц заметок."""
+
+from .common_test import NOTES_URL, BaseTestCase
 
 
-User = get_user_model()
+class TestNotesContent(BaseTestCase):
+    """Тестирование содержимого страниц со списком заметок."""
 
-NOTES_URL = reverse_lazy('notes:list')
-ADD_URL = reverse_lazy('notes:add')
+    def test_author_sees_own_notes(self):
+        """Проверить, что автор видит свои заметки."""
+        response = self.client.get(NOTES_URL)
 
+        self.assertIn('object_list', response.context)
+        object_list = response.context['object_list']
 
-class BaseTestCase(TestCase):
-    """Общий предок для тестов приложения notes."""
+        self.assertEqual(object_list.count(), 1)
+        self.assertEqual(object_list.first().author, self.author)
 
-    @classmethod
-    def setUpTestData(cls):
-        cls.author = User.objects.create_user(
-            username='Лев Толстой',
+    def test_reader_does_not_see_author_notes(self):
+        """Проверить, что читатель не видит чужие заметки."""
+        self.login_as_reader()
+        response = self.client.get(NOTES_URL)
+
+        self.assertIn('object_list', response.context)
+        self.assertEqual(
+            response.context['object_list'].count(),
+            0,
         )
-        cls.reader = User.objects.create_user(
-            username='Читатель',
-        )
-
-    def setUp(self):
-        self.author_client = self.client_class()
-        self.author_client.force_login(self.author)
-
-        self.reader_client = self.client_class()
-        self.reader_client.force_login(self.reader)
-
-
-def get_note_url(name, note):
-    """Получить URL заметки."""
-    return reverse_lazy(name, args=(note.slug,))
