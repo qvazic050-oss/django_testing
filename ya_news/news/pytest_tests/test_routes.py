@@ -1,63 +1,83 @@
+
 """Тесты доступности страниц и прав пользователей."""
 
 from http import HTTPStatus
 
 import pytest
-from django.urls import reverse
 from pytest_django.asserts import assertRedirects
 
 
 @pytest.mark.parametrize(
-    'name',
+    'url_fixture',
     (
-        'news:home',
-        'users:login',
-        'users:signup',
+        'comment_delete_url',
+        'comment_edit_url',
     ),
 )
-def test_pages_availability_for_anonymous_user(client, name, db):
-    """Проверить доступность общедоступных страниц."""
-    url = reverse(name)
-    response = client.get(url)
-    assert response.status_code == HTTPStatus.OK
-
-
-def test_news_detail_available_for_anonymous_user(client, news):
-    """Проверить доступность страницы новости."""
-    url = reverse('news:detail', args=(news.id,))
-    response = client.get(url)
-    assert response.status_code == HTTPStatus.OK
-
-
-@pytest.mark.parametrize('name', ('news:delete', 'news:edit'))
-def test_pages_availability_for_author(author_client, name, comment):
-    """Проверить доступ автора к своим комментариям."""
-    url = reverse(name, args=(comment.id,))
-    response = author_client.get(url)
-    assert response.status_code == HTTPStatus.OK
-
-
-@pytest.mark.parametrize('name', ('news:delete', 'news:edit'))
-def test_pages_unavailable_for_another_user(
-    reader_client, name, comment
+def test_redirects_anonymous_user_to_login(
+    client,
+    login_url,
+    request,
+    url_fixture,
 ):
-    """Проверить запрет доступа к чужим комментариям."""
-    url = reverse(name, args=(comment.id,))
-    response = reader_client.get(url)
-    assert response.status_code == HTTPStatus.NOT_FOUND
-
-
-@pytest.mark.parametrize('name', ('news:delete', 'news:edit'))
-def test_redirects_anonymous_user_to_login(client, name, comment):
     """Проверить перенаправление анонимного пользователя на вход."""
-    login_url = reverse('users:login')
-    url = reverse(name, args=(comment.id,))
+    url = request.getfixturevalue(url_fixture)
     expected_url = f'{login_url}?next={url}'
+
     response = client.get(url)
+
     assertRedirects(response, expected_url)
 
 
-def test_logout_by_post(author_client):
-    """Проверить выход пользователя через POST-запрос."""
-    author_client.post(reverse('users:logout'))
-    assert '_auth_user_id' not in author_client.session
+def test_pages_availability_and_user_permissions(
+    client,
+    author_client,
+    reader_client,
+    home_url,
+    login_url,
+    signup_url,
+    news_detail_url,
+    comment_edit_url,
+    comment_delete_url,
+    logout_url,
+    subtests,
+):
+    """Проверить доступность страниц и права пользователей."""
+    public_urls = (
+        home_url,
+        login_url,
+        signup_url,
+        news_detail_url,
+    )
+
+    public_clients = (
+        ('anonymous', client),
+        ('author', author_client),
+        ('reader', reader_client),
+    )
+
+    for user_name, test_client in public_clients:
+        for url in public_urls:
+            with subtests.test(user=user_name, url=url):
+                response = test_client.get(url)
+                assert response.status_code == HTTPStatus.OK
+
+    comment_urls = (
+        comment_edit_url,
+        comment_delete_url,
+    )
+
+    for url in comment_urls:
+        with subtests.test(user='author', url=url):
+            response = author_client.get(url)
+            assert response.status_code == HTTPStatus.OK
+
+    for url in comment_urls:
+        with subtests.test(user='reader', url=url):
+            response = reader_client.get(url)
+            assert response.status_code == HTTPStatus.NOT_FOUND
+
+    with subtests.test(user='author', url=logout_url):
+        response = author_client.post(logout_url)
+        assert response.status_code == HTTPStatus.OK
+        assert '_auth_user_id' not in author_client.session

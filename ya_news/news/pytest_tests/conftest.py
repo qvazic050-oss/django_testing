@@ -1,4 +1,3 @@
-
 """Фикстуры для тестов новостного приложения."""
 
 from datetime import timedelta
@@ -10,6 +9,16 @@ from django.urls import reverse
 from django.utils import timezone
 
 from news.models import Comment, News
+
+from .urls import (
+    COMMENT_DELETE_URL_NAME,
+    COMMENT_EDIT_URL_NAME,
+    HOME_URL_NAME,
+    LOGIN_URL_NAME,
+    LOGOUT_URL_NAME,
+    NEWS_DETAIL_URL_NAME,
+    SIGNUP_URL_NAME,
+)
 
 
 @pytest.fixture
@@ -101,31 +110,31 @@ def comments(author, news, db):
 @pytest.fixture
 def home_url():
     """Вернуть URL главной страницы."""
-    return reverse('news:home')
+    return reverse(HOME_URL_NAME)
 
 
 @pytest.fixture
 def news_detail_url(news):
     """Вернуть URL страницы новости."""
-    return reverse('news:detail', args=(news.pk,))
+    return reverse(NEWS_DETAIL_URL_NAME, args=(news.pk,))
 
 
 @pytest.fixture
 def login_url():
     """Вернуть URL страницы входа."""
-    return reverse('users:login')
+    return reverse(LOGIN_URL_NAME)
 
 
 @pytest.fixture
 def signup_url():
     """Вернуть URL страницы регистрации."""
-    return reverse('users:signup')
+    return reverse(SIGNUP_URL_NAME)
 
 
 @pytest.fixture
 def logout_url():
     """Вернуть URL выхода пользователя."""
-    return reverse('users:logout')
+    return reverse(LOGOUT_URL_NAME)
 
 
 @pytest.fixture
@@ -137,38 +146,10 @@ def news_comments_url(news_detail_url):
 @pytest.fixture
 def comment_edit_url(comment):
     """Вернуть URL редактирования комментария."""
-    return reverse('news:edit', args=(comment.pk,))
+    return reverse(COMMENT_EDIT_URL_NAME, args=(comment.pk,))
 
 
 @pytest.fixture
 def comment_delete_url(comment):
     """Вернуть URL удаления комментария."""
-    return reverse('news:delete', args=(comment.pk,))
-
-
-@pytest.fixture
-def comment_action_urls(comment_edit_url, comment_delete_url):
-    """Вернуть URL редактирования и удаления комментария."""
-    return {
-        'edit': comment_edit_url,
-        'delete': comment_delete_url,
-    }
-
-
-@pytest.fixture
-def public_page_urls(home_url, login_url, signup_url):
-    """Вернуть URL общедоступных страниц."""
-    return {
-        'главная': home_url,
-        'вход': login_url,
-        'регистрация': signup_url,
-    }
-
-
-@pytest.fixture
-def comment_page_urls(comment_edit_url, comment_delete_url):
-    """Вернуть URL страниц редактирования и удаления комментария."""
-    return {
-        'удаление': comment_delete_url,
-        'редактирование': comment_edit_url,
-    }
+    return reverse(COMMENT_DELETE_URL_NAME, args=(comment.pk,))
